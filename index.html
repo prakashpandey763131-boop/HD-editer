@@ -17,7 +17,7 @@
         video, img#imagePreview, canvas#vfxCanvas { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; transition: transform 0.3s ease; }
         video.active-media, img#imagePreview.active-media, canvas#vfxCanvas.active-media { display: block; }
         
-        #pipOverlayImg { position: absolute; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #38bdf8; top: 20px; left: 20px; z-index: 5; display: none; cursor: pointer; }
+        #pipOverlayImg { position: absolute; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #38bdf8; top: 20px; left: 20px; z-index: 5; display: none; cursor: grab; user-select: none; touch-action: none; }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes zigzag { 0% { transform: translateX(0) translateY(0); } 25% { transform: translateX(-15px) translateY(10px); } 50% { transform: translateX(15px) translateY(-10px); } 75% { transform: translateX(-15px) translateY(-10px); } 100% { transform: translateX(0) translateY(0); } }
@@ -163,8 +163,28 @@
 
         <!-- Picture-in-Picture (PiP) Overlay Logo/Image -->
         <div class="panel-box">
-            <div class="section-title">🖼️ PiP Logo / Watermark Overlay</div>
+            <div class="section-title">🖼️ PiP Logo / Watermark Overlay (Draggable)</div>
             <input type="file" id="pipUpload" accept="image/*">
+        </div>
+
+        <!-- Crop & Resize Studio -->
+        <div class="panel-box">
+            <div class="section-title">✂️ Crop & Resize Studio</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="cropImage(1, 1)">1:1 Square</button>
+                <button class="btn btn-secondary" onclick="cropImage(4, 5)">4:5 Portrait</button>
+                <button class="btn btn-secondary" onclick="cropImage(16, 9)">16:9 Landscape</button>
+            </div>
+        </div>
+
+        <!-- Magic Brush & Eraser Studio -->
+        <div class="panel-box">
+            <div class="section-title">🖌️ Magic Brush & Eraser Studio</div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn btn-secondary" onclick="setBrushMode('brush')">✏️ Paint Brush</button>
+                <button class="btn btn-secondary" onclick="setBrushMode('eraser')">🧹 Eraser</button>
+                <button class="btn btn-danger" onclick="clearCanvasDrawings()" style="flex:0.6;">Clear</button>
+            </div>
         </div>
 
         <!-- Viral SFX & Free Stock Clips Library -->
@@ -436,6 +456,122 @@
         let voiceAudioPlayer = document.getElementById('voiceAudioPlayer');
         let recordVoiceBtn = document.getElementById('recordVoiceBtn');
         let playVoiceBtn = document.getElementById('playVoiceBtn');
+
+        // Draggable Watermark Logic
+        let isDragging = false;
+        let startX, startY;
+        pipOverlayImg.onmousedown = pipOverlayImg.ontouchstart = function(e) {
+            isDragging = true;
+            let clientX = e.clientX || e.touches[0].clientX;
+            let clientY = e.clientY || e.touches[0].clientY;
+            startX = clientX - pipOverlayImg.offsetLeft;
+            startY = clientY - pipOverlayImg.offsetTop;
+            e.preventDefault();
+        };
+
+        window.onmousemove = window.ontouchmove = function(e) {
+            if (!isDragging) return;
+            let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            let clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            pipOverlayImg.style.left = (clientX - startX) + 'px';
+            pipOverlayImg.style.top = (clientY - startY) + 'px';
+            pipOverlayImg.style.position = 'absolute';
+        };
+
+        window.onmouseup = window.ontouchend = function() {
+            isDragging = false;
+        };
+
+        // Magic Brush & Eraser Logic
+        let isDrawing = false;
+        let brushMode = 'brush';
+
+        vfxCanvas.addEventListener('mousedown', startDrawing);
+        vfxCanvas.addEventListener('mousemove', drawOnCanvas);
+        vfxCanvas.addEventListener('mouseup', stopDrawing);
+
+        vfxCanvas.addEventListener('touchstart', (e) => { startDrawing(e.touches[0]); e.preventDefault(); });
+        vfxCanvas.addEventListener('touchmove', (e) => { drawOnCanvas(e.touches[0]); e.preventDefault(); });
+        vfxCanvas.addEventListener('touchend', stopDrawing);
+
+        function setBrushMode(mode) {
+            brushMode = mode;
+            if(!vfxCanvas.classList.contains('active-media')) {
+                vfxCanvas.className = "active-media";
+                videoElement.className = "";
+            }
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            ctx.beginPath();
+            let rect = vfxCanvas.getBoundingClientRect();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function drawOnCanvas(e) {
+            if (!isDrawing) return;
+            let rect = vfxCanvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            if (brushMode === 'brush') {
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else {
+                ctx.clearRect(x - 15, y - 15, 30, 30);
+            }
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearCanvasDrawings() {
+            ctx.clearRect(0, 0, vfxCanvas.width, vfxCanvas.height);
+        }
+
+        // Crop Image Function
+        function cropImage(targetAspectW, targetAspectH) {
+            let img = document.getElementById('imagePreview');
+            if(img.classList.contains('active-media') && img.src) {
+                let tempImg = new Image();
+                tempImg.crossOrigin = "anonymous";
+                tempImg.src = img.src;
+                tempImg.onload = function() {
+                    let srcW = tempImg.naturalWidth;
+                    let srcH = tempImg.naturalHeight;
+                    let srcAspect = srcW / srcH;
+                    let targetAspect = targetAspectW / targetAspectH;
+                    
+                    let cropW = srcW;
+                    let cropH = srcH;
+                    let cropX = 0;
+                    let cropY = 0;
+
+                    if (srcAspect > targetAspect) {
+                        cropW = srcH * targetAspect;
+                        cropX = (srcW - cropW) / 2;
+                    } else {
+                        cropH = srcW / targetAspect;
+                        cropY = (srcH - cropH) / 2;
+                    }
+
+                    let c = document.createElement('canvas');
+                    c.width = cropW;
+                    c.height = cropH;
+                    let cx = c.getContext('2d');
+                    cx.drawImage(tempImg, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                    img.src = c.toDataURL();
+                    alert("Image successfully cropped!");
+                };
+            } else {
+                alert("Pehle Gallery se koi Photo upload karein crop karne ke liye!");
+            }
+        }
 
         async function initCamera() {
             if (isGalleryMode) return;
@@ -906,7 +1042,6 @@
 
         function toggleRecord() {
             if (recordBtn.innerText.includes('Start')) {
-                // Countdown before recording
                 countdownOverlay.style.display = 'block';
                 let count = 3;
                 countdownOverlay.innerText = count;
@@ -929,7 +1064,6 @@
             recordedChunks = [];
             let streamToRecord = mediaStream;
             
-            // If vfx is active, capture stream from canvas
             if(vfxCanvas.classList.contains('active-media')) {
                 streamToRecord = vfxCanvas.captureStream(30);
                 if(mediaStream && mediaStream.getAudioTracks().length > 0) {
@@ -977,7 +1111,6 @@
 
         function downloadVideo() {
             if(imageElement.classList.contains('active-media')) {
-                // Download as photo
                 let link = document.createElement('a');
                 link.download = 'edited-photo.png';
                 link.href = imageElement.src;
