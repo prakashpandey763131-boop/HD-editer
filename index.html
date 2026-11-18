@@ -3,86 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HD Editer - Ultimate Pro Video Maker</title>
+    <title>HD Editer - Ultimate Pro Video & Photo Editor</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        h1 { font-size: 1.8rem; margin-bottom: 5px; color: #38bdf8; text-align: center; }
-        p.subtitle { font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px; text-align: center; }
+        
+        .header-row { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        h1 { font-size: 1.6rem; color: #38bdf8; }
+        p.subtitle { font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px; text-align: center; }
 
         .app-container { width: 100%; max-width: 420px; background: #1e293b; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
 
-        .video-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        .video-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; transition: aspect-ratio 0.3s ease; }
+        video, img#imagePreview { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; transition: transform 0.3s ease; }
+        video.active-media, img#imagePreview.active-media { display: block; }
         
+        #pipOverlayImg { position: absolute; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #38bdf8; top: 20px; left: 20px; z-index: 5; display: none; cursor: pointer; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes zigzag { 0% { transform: translateX(0) translateY(0); } 25% { transform: translateX(-15px) translateY(10px); } 50% { transform: translateX(15px) translateY(-10px); } 75% { transform: translateX(-15px) translateY(-10px); } 100% { transform: translateX(0) translateY(0); } }
+        @keyframes updown { 0% { transform: translateY(0); } 50% { transform: translateY(-25px); } 100% { transform: translateY(0); } }
+
+        .anim-spin { animation: spin 3s linear infinite; }
+        .anim-zigzag { animation: zigzag 0.5s ease-in-out infinite; }
+        .anim-updown { animation: updown 1.5s ease-in-out infinite; }
+
         .vignette-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; box-shadow: inset 0 0 60px rgba(0,0,0,0.75); z-index: 2; display: none; }
         .vignette-active { display: block; }
 
         .color-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 3;
-            mix-blend-mode: overlay;
-            opacity: 0;
-            transition: 0.2s ease;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 3; mix-blend-mode: overlay; opacity: 0; transition: 0.2s ease;
         }
 
         .countdown-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 5rem;
-            font-weight: bold;
-            color: #38bdf8;
-            text-shadow: 0 0 25px rgba(0,0,0,0.9);
-            z-index: 6;
-            display: none;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 5rem; font-weight: bold; color: #38bdf8; text-shadow: 0 0 25px rgba(0,0,0,0.9); z-index: 6; display: none;
         }
         .countdown-active { display: block; }
 
+        .sticker-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: hidden; }
+
         .watermark {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            color: rgba(255, 255, 255, 0.75);
-            font-size: 0.9rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-            pointer-events: none;
-            z-index: 5;
+            position: absolute; bottom: 15px; right: 15px; color: rgba(255, 255, 255, 0.75);
+            font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+            pointer-events: none; z-index: 5;
         }
 
         .video-caption {
-            position: absolute;
-            bottom: 65px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #ffffff;
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
-            text-align: center;
-            z-index: 4;
-            max-width: 90%;
-            word-break: break-word;
-            pointer-events: none;
+            position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+            color: #ffffff; font-size: 1.2rem; font-weight: bold; text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+            text-align: center; z-index: 4; max-width: 90%; word-break: break-word; pointer-events: none;
         }
-
-        .toggle-box { background: #0f172a; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border: 1px solid #334155; }
-        .toggle-box span { font-weight: 600; font-size: 0.95rem; color: #38bdf8; }
-        
-        .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #38bdf8; }
-        input:checked + .slider:before { transform: translateX(24px); }
 
         .controls-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; background: #0f172a; padding: 10px; border-radius: 8px; }
         .btn { background: #38bdf8; color: #0f172a; border: none; padding: 10px 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; flex: 1; text-align: center; font-size: 0.9rem; }
@@ -92,6 +64,7 @@
         .btn-success { background: #22c55e; color: white; }
         .btn-secondary { background: #475569; color: white; }
         .btn-secondary:hover { background: #334155; }
+        .btn-warning { background: #f59e0b; color: white; }
 
         .section-title { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 4px; font-weight: 600; }
         input[type="file"], input[type="text"], select, input[type="range"], input[type="number"] { background: #0f172a; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; width: 100%; font-size: 0.9rem; }
@@ -108,24 +81,46 @@
 </head>
 <body>
 
-    <h1>HD Editer</h1>
-    <p class="subtitle">Ultimate Pro Video Maker</p>
+    <div class="header-row">
+        <h1>HD Editer</h1>
+        <button class="btn btn-secondary" style="flex: 0 0 90px; padding: 6px;" onclick="goHome()">🔙 Back / Home</button>
+    </div>
+    <p class="subtitle">Ultimate Pro Video & Photo Editor Studio</p>
 
     <div class="app-container">
+        <!-- Gallery Upload Option -->
+        <div class="panel-box" style="background: #0b1120; border-color: #38bdf8;">
+            <div class="section-title" style="color: #38bdf8;">📂 Open from Gallery (Video / Photo)</div>
+            <input type="file" id="galleryUpload" accept="video/*,image/*">
+        </div>
+
         <!-- Live Video & Preview Box -->
         <div class="video-box" id="videoBox">
             <video id="videoPreview" autoplay playsinline muted></video>
+            <img id="imagePreview" alt="Uploaded Image Preview">
+            <img id="pipOverlayImg" alt="PiP Overlay">
             <div id="vignette" class="vignette-overlay"></div>
             <div id="colorOverlay" class="color-overlay"></div>
             <div id="countdownOverlay" class="countdown-overlay">3</div>
+            <div id="stickerContainer" class="sticker-container"></div>
             <div id="videoCaption" class="video-caption"></div>
             <div class="watermark">HD Editer</div>
         </div>
 
         <!-- Camera Actions & Torch -->
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px;" id="cameraControls">
             <button class="btn btn-secondary" id="flipBtn" onclick="switchCamera()">🔄 Flip</button>
             <button class="btn btn-secondary" id="torchBtn" onclick="toggleTorch()">🔦 Flash: OFF</button>
+        </div>
+
+        <!-- Aspect Ratio Switcher -->
+        <div id="aspectSection">
+            <div class="section-title">📐 Canvas Aspect Ratio</div>
+            <select id="aspectSelect" onchange="changeAspectRatio()">
+                <option value="9/16" selected>9:16 (Reels / Shorts)</option>
+                <option value="1/1">1:1 (Square Post)</option>
+                <option value="16/9">16:9 (Landscape / YouTube)</option>
+            </select>
         </div>
 
         <!-- Resolution Quality Selector -->
@@ -137,7 +132,71 @@
             </select>
         </div>
 
-        <!-- Direct In-App Song Search & Volume Balancer -->
+        <!-- Picture-in-Picture (PiP) Overlay Logo/Image -->
+        <div class="panel-box">
+            <div class="section-title">🖼️ PiP Logo / Watermark Overlay</div>
+            <input type="file" id="pipUpload" accept="image/*">
+        </div>
+
+        <!-- Viral SFX & Free Stock Clips Library -->
+        <div class="panel-box" style="background: #0b1120; border-color: #38bdf8;">
+            <div class="section-title" style="color: #38bdf8;">🔥 Free Viral SFX & Stock Clips Hub</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Tap to preview/load copyright-free viral sound effects:</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" style="flex: 0 0 auto; font-size: 0.8rem; padding: 6px 10px;" onclick="playSFX('Pop')">🎵 Pop</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; font-size: 0.8rem; padding: 6px 10px;" onclick="playSFX('Whoosh')">💨 Whoosh</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; font-size: 0.8rem; padding: 6px 10px;" onclick="playSFX('Boom')">💥 Boom</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; font-size: 0.8rem; padding: 6px 10px;" onclick="playSFX('Success')">✨ Success</button>
+            </div>
+            <div style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8;">Free Stock Video Templates:</div>
+            <select id="stockClipsSelect" onchange="loadStockClip()">
+                <option value="">-- Select Free Viral Background Clip --</option>
+                <option value="https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-sunset-26070-large.mp4">Sunset Cinematic Drone</option>
+                <option value="https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-futuristic-city-at-night-41585-large.mp4">Cyberpunk Neon City</option>
+                <option value="https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4">Ocean Waves Background</option>
+            </select>
+        </div>
+
+        <!-- Rotation & Motion FX Studio -->
+        <div class="panel-box" style="background: #0b1120; border-color: #475569;">
+            <div class="section-title" style="color: #38bdf8;">🌀 Rotation & Motion Studio</div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn btn-secondary" onclick="rotateManual()">🔄 Rotate 90°</button>
+                <button class="btn btn-secondary" onclick="setMotion('spin')">🔄 Spin</button>
+                <button class="btn btn-secondary" onclick="setMotion('zigzag')">⚡ Zig-Zag</button>
+                <button class="btn btn-secondary" onclick="setMotion('updown')">↕️ Up/Down</button>
+                <button class="btn btn-danger" onclick="setMotion('none')" style="flex:0.6;">Reset</button>
+            </div>
+        </div>
+
+        <!-- One-Tap Cinematic Filters -->
+        <div class="panel-box">
+            <div class="section-title">✨ One-Tap Cinematic Filters</div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn btn-secondary" onclick="setPreset('normal')">Normal</button>
+                <button class="btn btn-secondary" onclick="setPreset('bw')">B&W</button>
+                <button class="btn btn-secondary" onclick="setPreset('vintage')">Vintage</button>
+                <button class="btn btn-secondary" onclick="setPreset('vibrant')">Vibrant</button>
+            </div>
+        </div>
+
+        <!-- Stickers & Emojis Drawer with Undo -->
+        <div class="panel-box">
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span>👑 Add Emojis & Stickers</span>
+                <span style="color: #38bdf8; cursor: pointer;" onclick="undoLastSticker()">↶ Undo Last</span>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" style="flex: 0 0 auto; padding: 6px 12px; font-size: 1.2rem;" onclick="addSticker('🔥')">🔥</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; padding: 6px 12px; font-size: 1.2rem;" onclick="addSticker('❤️')">❤️</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; padding: 6px 12px; font-size: 1.2rem;" onclick="addSticker('😎')">😎</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; padding: 6px 12px; font-size: 1.2rem;" onclick="addSticker('🚀')">🚀</button>
+                <button class="btn btn-secondary" style="flex: 0 0 auto; padding: 6px 12px; font-size: 1.2rem;" onclick="addSticker('⭐')">⭐</button>
+                <button class="btn btn-danger" style="flex: 0 0 auto; padding: 6px 10px; font-size: 0.8rem;" onclick="clearStickers()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Direct In-App Song Search & Voiceover Studio -->
         <div id="songSection" class="panel-box">
             <div class="section-title">🔍 Search World Songs Instantly</div>
             <div style="display: flex; gap: 6px;">
@@ -150,8 +209,18 @@
             <input type="file" id="audioUpload" accept="audio/*">
             <audio id="bgMusic" loop></audio>
 
+            <!-- Voiceover Studio -->
+            <div style="margin-top: 6px; border-top: 1px solid #334155; padding-top: 6px;">
+                <div class="section-title" style="color: #38bdf8;">🎙️ Voiceover Microphone Recording</div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-success" id="recordVoiceBtn" onclick="toggleVoiceRecording()">🎙️ Record Voice</button>
+                    <button class="btn btn-danger" id="playVoiceBtn" style="display:none;" onclick="playVoiceover()">▶️ Play Voice</button>
+                </div>
+                <audio id="voiceAudioPlayer"></audio>
+            </div>
+
             <!-- Audio Volume Balancer -->
-            <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
                 <div style="font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between;">
                     <span>Background Song Volume</span>
                     <span id="musicVolVal">80%</span>
@@ -160,9 +229,12 @@
             </div>
         </div>
 
-        <!-- Manual Brightness & Contrast Sliders -->
+        <!-- Pro Color Correction & Manual Sliders -->
         <div id="manualPanel" class="panel-box">
-            <div class="section-title">🎚️ Manual Brightness & Contrast</div>
+            <div class="section-title" style="display: flex; justify-content: space-between;">
+                <span>🎚️ Pro Color Correction</span>
+                <span style="color: #38bdf8; cursor: pointer;" onclick="resetColorEffects()">🔄 Reset Sliders</span>
+            </div>
             <div>
                 <div style="font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between;">
                     <span>Brightness</span>
@@ -177,15 +249,22 @@
                 </div>
                 <input type="range" id="contrastSlider" min="50" max="180" value="100" oninput="updateEffects()">
             </div>
+            <div>
+                <div style="font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between;">
+                    <span>Color Saturation</span>
+                    <span id="satVal">100%</span>
+                </div>
+                <input type="range" id="saturationSlider" min="0" max="200" value="100" oninput="updateEffects()">
+            </div>
         </div>
 
         <!-- Automatic DSLR Switch & Intensity Slider -->
         <div id="dslrSection" class="panel-box">
             <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="document.getElementById('dslrToggle').click(); event.stopPropagation();">
                 <span style="font-weight: 600; font-size: 0.95rem; color: #38bdf8;">📷 Auto DSLR Mode</span>
-                <label class="switch">
-                    <input type="checkbox" id="dslrToggle" onchange="updateEffects()">
-                    <span class="slider"></span>
+                <label class="switch" style="position: relative; display: inline-block; width: 48px; height: 24px;">
+                    <input type="checkbox" id="dslrToggle" onchange="updateEffects()" style="opacity:0; width:0; height:0;">
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;"></span>
                 </label>
             </div>
             <div>
@@ -250,10 +329,10 @@
         </div>
 
         <!-- Recording Controls -->
-        <div class="controls-row">
+        <div class="controls-row" id="recordControlsRow">
             <button id="recordBtn" class="btn btn-success" onclick="toggleRecord()">🔴 Start Record</button>
             <button id="downloadBtn" class="btn" style="display:none;" onclick="downloadVideo()">💾 Download</button>
-            <button id="retakeBtn" class="btn btn-danger" style="display:none;" onclick="retakeVideo()">🔄 Retake</button>
+            <button id="retakeBtn" class="btn btn-danger" style="display:none;" onclick="retakeVideo()">🔄 Reset / Retake</button>
         </div>
     </div>
 
@@ -262,6 +341,10 @@
         let mediaRecorder;
         let recordedChunks = [];
         let videoElement = document.getElementById('videoPreview');
+        let imageElement = document.getElementById('imagePreview');
+        let pipOverlayImg = document.getElementById('pipOverlayImg');
+        let galleryUpload = document.getElementById('galleryUpload');
+        let pipUpload = document.getElementById('pipUpload');
         let audioUpload = document.getElementById('audioUpload');
         let songSearchInput = document.getElementById('songSearchInput');
         let searchResults = document.getElementById('searchResults');
@@ -278,6 +361,8 @@
         let brightVal = document.getElementById('brightVal');
         let contrastSlider = document.getElementById('contrastSlider');
         let contrastVal = document.getElementById('contrastVal');
+        let saturationSlider = document.getElementById('saturationSlider');
+        let satVal = document.getElementById('satVal');
         let musicVolumeSlider = document.getElementById('musicVolumeSlider');
         let musicVolVal = document.getElementById('musicVolVal');
         let resolutionSelect = document.getElementById('resolutionSelect');
@@ -292,17 +377,32 @@
         let trimEnd = document.getElementById('trimEnd');
         let flipBtn = document.getElementById('flipBtn');
         let torchBtn = document.getElementById('torchBtn');
+        let cameraControls = document.getElementById('cameraControls');
         let songSection = document.getElementById('songSection');
         let dslrSection = document.getElementById('dslrSection');
         let colorSection = document.getElementById('colorSection');
         let textSection = document.getElementById('textSection');
         let manualPanel = document.getElementById('manualPanel');
         let resSection = document.getElementById('resSection');
+        let aspectSelect = document.getElementById('aspectSelect');
+        let stockClipsSelect = document.getElementById('stockClipsSelect');
 
         let currentFacingMode = 'user';
         let torchOn = false;
+        let isGalleryMode = false;
+        let currentRotation = 0;
+        let stickerElements = [];
+
+        let voiceRecorder;
+        let voiceChunks = [];
+        let voiceBlobUrl = null;
+        let isRecordingVoice = false;
+        let voiceAudioPlayer = document.getElementById('voiceAudioPlayer');
+        let recordVoiceBtn = document.getElementById('recordVoiceBtn');
+        let playVoiceBtn = document.getElementById('playVoiceBtn');
 
         async function initCamera() {
+            if (isGalleryMode) return;
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
             }
@@ -315,6 +415,8 @@
                     audio: true 
                 });
                 videoElement.srcObject = mediaStream;
+                videoElement.className = "active-media";
+                imageElement.className = "";
                 torchOn = false;
                 torchBtn.innerText = "🔦 Flash: OFF";
             } catch (err) {
@@ -322,6 +424,232 @@
             }
         }
         initCamera();
+
+        function goHome() {
+            retakeVideo();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changeAspectRatio() {
+            let ratio = aspectSelect.value;
+            document.getElementById('videoBox').style.aspectRatio = ratio;
+        }
+
+        pipUpload.addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if(file) {
+                pipOverlayImg.src = URL.createObjectURL(file);
+                pipOverlayImg.style.display = 'block';
+            }
+        });
+
+        async function toggleVoiceRecording() {
+            if (!isRecordingVoice) {
+                try {
+                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    voiceRecorder = new MediaRecorder(stream);
+                    voiceChunks = [];
+                    voiceRecorder.ondataavailable = e => voiceChunks.push(e.data);
+                    voiceRecorder.onstop = () => {
+                        let blob = new Blob(voiceChunks, { type: 'audio/webm' });
+                        voiceBlobUrl = URL.createObjectURL(blob);
+                        voiceAudioPlayer.src = voiceBlobUrl;
+                        playVoiceBtn.style.display = 'block';
+                        alert("Voiceover recorded successfully!");
+                    };
+                    voiceRecorder.start();
+                    isRecordingVoice = true;
+                    recordVoiceBtn.innerText = "⏹️ Stop Voice Rec";
+                    recordVoiceBtn.className = "btn btn-danger";
+                } catch(e) {
+                    alert("Microphone permission denied.");
+                }
+            } else {
+                voiceRecorder.stop();
+                isRecordingVoice = false;
+                recordVoiceBtn.innerText = "🎙️ Record Voice";
+                recordVoiceBtn.className = "btn btn-success";
+            }
+        }
+
+        function playVoiceover() {
+            if(voiceBlobUrl) { voiceAudioPlayer.play(); }
+        }
+
+        function playSFX(type) {
+            let ctx = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = ctx.createOscillator();
+            let gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            let now = ctx.currentTime;
+            if(type === 'Pop') {
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if(type === 'Whoosh') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if(type === 'Boom') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if(type === 'Success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            }
+        }
+
+        function loadStockClip() {
+            let url = stockClipsSelect.value;
+            if(!url) return;
+            isGalleryMode = true;
+            if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); }
+            
+            videoElement.srcObject = null;
+            videoElement.src = url;
+            videoElement.controls = true;
+            videoElement.className = "active-media";
+            imageElement.className = "";
+            editSuite.style.display = 'flex';
+            cameraControls.style.display = 'none';
+            resSection.style.display = 'none';
+            downloadBtn.style.display = 'block';
+            retakeBtn.style.display = 'block';
+            recordBtn.style.display = 'none';
+        }
+
+        function rotateManual() {
+            currentRotation = (currentRotation + 90) % 360;
+            applyTransform();
+        }
+
+        function setMotion(type) {
+            videoElement.className = videoElement.classList.contains('active-media') ? 'active-media' : '';
+            imageElement.className = imageElement.classList.contains('active-media') ? 'active-media' : '';
+            
+            if(type === 'spin') {
+                videoElement.classList.add('anim-spin');
+                imageElement.classList.add('anim-spin');
+            } else if(type === 'zigzag') {
+                videoElement.classList.add('anim-zigzag');
+                imageElement.classList.add('anim-zigzag');
+            } else if(type === 'updown') {
+                videoElement.classList.add('anim-updown');
+                imageElement.classList.add('anim-updown');
+            } else {
+                currentRotation = 0;
+            }
+            applyTransform();
+        }
+
+        function applyTransform() {
+            let transformStr = `rotate(${currentRotation}deg)`;
+            videoElement.style.transform = transformStr;
+            imageElement.style.transform = transformStr;
+        }
+
+        function setPreset(type) {
+            if(type === 'bw') {
+                brightnessSlider.value = 100; contrastSlider.value = 130; saturationSlider.value = 0;
+                brightVal.innerText = '100%'; contrastVal.innerText = '130%'; satVal.innerText = '0%';
+                updateEffects();
+            } else if(type === 'vintage') {
+                brightnessSlider.value = 110; contrastSlider.value = 110; saturationSlider.value = 80;
+                brightVal.innerText = '110%'; contrastVal.innerText = '110%'; satVal.innerText = '80%';
+                videoElement.style.filter = 'sepia(60%) brightness(110%) contrast(110%) saturate(80%)';
+                imageElement.style.filter = 'sepia(60%) brightness(110%) contrast(110%) saturate(80%)';
+            } else if(type === 'vibrant') {
+                brightnessSlider.value = 105; contrastSlider.value = 125; saturationSlider.value = 180;
+                brightVal.innerText = '105%'; contrastVal.innerText = '125%'; satVal.innerText = '180%';
+                updateEffects();
+            } else {
+                resetColorEffects();
+            }
+        }
+
+        function resetColorEffects() {
+            brightnessSlider.value = 100; contrastSlider.value = 100; saturationSlider.value = 100;
+            brightVal.innerText = '100%'; contrastVal.innerText = '100%'; satVal.innerText = '100%';
+            updateEffects();
+        }
+
+        function addSticker(emoji) {
+            let container = document.getElementById('stickerContainer');
+            let span = document.createElement('div');
+            span.innerText = emoji;
+            span.style.position = 'absolute';
+            span.style.left = (Math.random() * 60 + 20) + '%';
+            span.style.top = (Math.random() * 60 + 20) + '%';
+            span.style.fontSize = '3rem';
+            span.style.cursor = 'pointer';
+            span.style.pointerEvents = 'auto';
+            span.style.transform = 'translate(-50%, -50%)';
+            span.onclick = function() { 
+                container.removeChild(span); 
+                stickerElements = stickerElements.filter(el => el !== span);
+            };
+            container.appendChild(span);
+            stickerElements.push(span);
+        }
+
+        function undoLastSticker() {
+            if(stickerElements.length > 0) {
+                let lastSticker = stickerElements.pop();
+                lastSticker.remove();
+            }
+        }
+
+        function clearStickers() {
+            document.getElementById('stickerContainer').innerHTML = '';
+            stickerElements = [];
+        }
+
+        galleryUpload.addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if(file) {
+                isGalleryMode = true;
+                if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); }
+                let fileURL = URL.createObjectURL(file);
+                if(file.type.startsWith('video/')) {
+                    videoElement.srcObject = null;
+                    videoElement.src = fileURL;
+                    videoElement.controls = true;
+                    videoElement.className = "active-media";
+                    imageElement.className = "";
+                    editSuite.style.display = 'flex';
+                    recordBtn.style.display = 'none';
+                    downloadBtn.style.display = 'block';
+                    retakeBtn.style.display = 'block';
+                    recordedChunks = []; 
+                } else if(file.type.startsWith('image/')) {
+                    imageElement.src = fileURL;
+                    imageElement.className = "active-media";
+                    videoElement.className = "";
+                    videoElement.src = "";
+                    recordBtn.style.display = 'none';
+                    downloadBtn.style.display = 'none';
+                    retakeBtn.style.display = 'block';
+                }
+                cameraControls.style.display = 'none';
+                resSection.style.display = 'none';
+            }
+        });
 
         function switchCamera() {
             currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
@@ -332,9 +660,7 @@
             let track = mediaStream.getVideoTracks()[0];
             try {
                 torchOn = !torchOn;
-                await track.applyConstraints({
-                    advanced: [{ torch: torchOn }]
-                });
+                await track.applyConstraints({ advanced: [{ torch: torchOn }] });
                 torchBtn.innerText = torchOn ? "🔦 Flash: ON" : "🔦 Flash: OFF";
             } catch(e) {
                 alert("Flash/Torch is not supported on this device/camera.");
@@ -351,10 +677,7 @@
 
         async function searchSongs() {
             let query = songSearchInput.value.trim();
-            if(!query) {
-                alert("Please type a song name to search.");
-                return;
-            }
+            if(!query) { alert("Please type a song name to search."); return; }
 
             searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #94a3b8;">Searching songs...</div>';
             searchResults.style.display = 'block';
@@ -374,15 +697,14 @@
                             songSearchInput.value = `${song.trackName} - ${song.artistName}`;
                             searchResults.style.display = 'none';
                             audioUpload.value = "";
-                            alert(`Song selected: ${song.trackName}`);
                         };
                         searchResults.appendChild(item);
                     });
                 } else {
-                    searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">No songs found. Try another name.</div>';
+                    searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">No songs found.</div>';
                 }
             } catch(e) {
-                searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">Search failed. Check your internet connection.</div>';
+                searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">Search failed.</div>';
             }
         }
 
@@ -398,71 +720,46 @@
         function updateEffects() {
             let p = intensitySlider.value / 100;
             intensityVal.innerText = intensitySlider.value + '%';
-
             let br = brightnessSlider.value;
             brightVal.innerText = br + '%';
-
             let co = contrastSlider.value;
             contrastVal.innerText = co + '%';
+            let sat = saturationSlider.value;
+            satVal.innerText = sat + '%';
 
-            let filterStr = `brightness(${br}%) contrast(${co}%)`;
+            let filterStr = `brightness(${br}%) contrast(${co}%) saturate(${sat}%)`;
 
             if (dslrToggle.checked) {
-                let c = 1 + (0.25 * p);
-                let sat = 1 + (0.3 * p);
                 let sep = 0.12 * p;
                 let hue = -8 * p;
-                filterStr += ` saturate(${sat}) sepia(${sep}) hue-rotate(${hue}deg)`;
+                filterStr += ` sepia(${sep}) hue-rotate(${hue}deg)`;
                 vignette.classList.add('vignette-active');
             } else {
                 vignette.classList.remove('vignette-active');
             }
             videoElement.style.filter = filterStr;
+            imageElement.style.filter = filterStr;
 
             let val = colorFillSelect.value;
-            if(val === 'golden') {
-                colorOverlay.style.backgroundColor = '#ffaa00';
-                colorOverlay.style.opacity = (0.35 * p);
-            } else if(val === 'cyberpunk') {
-                colorOverlay.style.backgroundColor = '#00f0ff';
-                colorOverlay.style.opacity = (0.35 * p);
-            } else if(val === 'sunset') {
-                colorOverlay.style.backgroundColor = '#ff007f';
-                colorOverlay.style.opacity = (0.35 * p);
-            } else if(val === 'emerald') {
-                colorOverlay.style.backgroundColor = '#00ff66';
-                colorOverlay.style.opacity = (0.3 * p);
-            } else {
-                colorOverlay.style.backgroundColor = 'transparent';
-                colorOverlay.style.opacity = '0';
-            }
+            if(val === 'golden') { colorOverlay.style.backgroundColor = '#ffaa00'; colorOverlay.style.opacity = (0.35 * p); }
+            else if(val === 'cyberpunk') { colorOverlay.style.backgroundColor = '#00f0ff'; colorOverlay.style.opacity = (0.35 * p); }
+            else if(val === 'sunset') { colorOverlay.style.backgroundColor = '#ff007f'; colorOverlay.style.opacity = (0.35 * p); }
+            else if(val === 'emerald') { colorOverlay.style.backgroundColor = '#00ff66'; colorOverlay.style.opacity = (0.3 * p); }
+            else { colorOverlay.style.backgroundColor = 'transparent'; colorOverlay.style.opacity = '0'; }
         }
 
-        function updateCaption() {
-            videoCaption.innerText = captionInput.value;
-        }
-
-        function updateFont() {
-            videoCaption.style.fontFamily = fontSelect.value;
-        }
-
+        function updateCaption() { videoCaption.innerText = captionInput.value; }
+        function updateFont() { videoCaption.style.fontFamily = fontSelect.value; }
         function changeSpeed() {
             let speed = parseFloat(postSpeedSelect.value);
             videoElement.playbackRate = speed;
             bgMusic.playbackRate = speed;
         }
-
-        function applyTrim() {
-            let start = parseFloat(trimStart.value) || 0;
-            videoElement.currentTime = start;
-        }
+        function applyTrim() { videoElement.currentTime = parseFloat(trimStart.value) || 0; }
 
         function toggleRecord() {
-            if (recordBtn.innerText.includes("Start")) {
-                startCountdownAndRecord();
-            } else {
-                stopRecording();
-            }
+            if (recordBtn.innerText.includes("Start")) { startCountdownAndRecord(); }
+            else { stopRecording(); }
         }
 
         function startCountdownAndRecord() {
@@ -473,11 +770,9 @@
 
             let timer = setInterval(() => {
                 count--;
-                if (count > 0) {
-                    countdownOverlay.innerText = count;
-                } else if (count === 0) {
-                    countdownOverlay.innerText = "GO!";
-                } else {
+                if (count > 0) { countdownOverlay.innerText = count; }
+                else if (count === 0) { countdownOverlay.innerText = "GO!"; }
+                else {
                     clearInterval(timer);
                     countdownOverlay.classList.remove('countdown-active');
                     recordBtn.disabled = false;
@@ -489,19 +784,12 @@
         function startRecording() {
             recordedChunks = [];
             let options = { mimeType: 'video/webm; codecs=vp9' };
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options = { mimeType: 'video/webm' };
-            }
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) { options = { mimeType: 'video/webm' }; }
 
-            try {
-                mediaRecorder = new MediaRecorder(mediaStream, options);
-            } catch (e) {
-                mediaRecorder = new MediaRecorder(mediaStream);
-            }
+            try { mediaRecorder = new MediaRecorder(mediaStream, options); }
+            catch (e) { mediaRecorder = new MediaRecorder(mediaStream); }
 
-            mediaRecorder.ondataavailable = function(e) {
-                if (e.data.size > 0) recordedChunks.push(e.data);
-            };
+            mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) recordedChunks.push(e.data); };
 
             mediaRecorder.onstop = function() {
                 let blob = new Blob(recordedChunks, { type: 'video/webm' });
@@ -510,16 +798,12 @@
                 videoElement.src = videoURL;
                 videoElement.controls = true;
                 bgMusic.pause();
+                if(voiceAudioPlayer.src) voiceAudioPlayer.pause();
 
                 editSuite.style.display = 'flex';
-                flipBtn.style.display = 'none';
-                torchBtn.style.display = 'none';
+                cameraControls.style.display = 'none';
                 resSection.style.display = 'none';
-                songSection.style.display = 'none';
-                dslrSection.style.display = 'none';
-                colorSection.style.display = 'none';
-                textSection.style.display = 'none';
-                manualPanel.style.display = 'none';
+                songSection.style.display = 'flex';
 
                 videoElement.onloadedmetadata = function() {
                     trimEnd.value = videoElement.duration.toFixed(1);
@@ -529,6 +813,7 @@
 
             mediaRecorder.start();
             if(bgMusic.src) bgMusic.play();
+            if(voiceBlobUrl) voiceAudioPlayer.play();
 
             recordBtn.innerText = "⏹️ Stop Record";
             recordBtn.className = "btn btn-danger";
@@ -541,40 +826,39 @@
             retakeBtn.style.display = 'block';
         }
 
-    function downloadVideo() {
+        function downloadVideo() {
             let blob = new Blob(recordedChunks, { type: 'video/webm' });
             let url = URL.createObjectURL(blob);
             let a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
+            a.style.display = 'none'; a.href = url;
             a.download = 'HD-Editer-Pro.webm';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }, 100);
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+        }
+
+        function retakeView() {
+            // reset logic
         }
 
         function retakeVideo() {
+            isGalleryMode = false;
             videoElement.src = "";
             videoElement.controls = false;
+            imageElement.src = "";
+            imageElement.className = "";
+            pipOverlayImg.style.display = 'none';
+            galleryUpload.value = "";
+            pipUpload.value = "";
+            currentRotation = 0;
+            clearStickers();
             initCamera();
             editSuite.style.display = 'none';
-            flipBtn.style.display = 'block';
-            torchBtn.style.display = 'block';
+            cameraControls.style.display = 'flex';
             resSection.style.display = 'block';
-            songSection.style.display = 'flex';
-            dslrSection.style.display = 'flex';
-            colorSection.style.display = 'block';
-            textSection.style.display = 'block';
-            manualPanel.style.display = 'flex';
             downloadBtn.style.display = 'none';
             retakeBtn.style.display = 'none';
             recordBtn.style.display = 'block';
             recordBtn.innerText = "🔴 Start Record";
             recordBtn.className = "btn btn-success";
-        }
-    </script>
-</body>
-</html>
+    
+
