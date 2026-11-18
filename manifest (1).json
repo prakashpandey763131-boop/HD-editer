@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "HD Editer",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "pr creation",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "index.html",
+  "description": "Create A HD quality video"
+}
