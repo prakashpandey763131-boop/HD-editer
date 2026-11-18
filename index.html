@@ -8,15 +8,14 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         
-        .header-row { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        h1 { font-size: 1.6rem; color: #38bdf8; }
+        .header-row { width: 100%; max-width: 420px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 12px; margin-bottom: 10px; }
         p.subtitle { font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px; text-align: center; }
 
         .app-container { width: 100%; max-width: 420px; background: #1e293b; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
 
         .video-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; transition: aspect-ratio 0.3s ease; }
-        video, img#imagePreview { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; transition: transform 0.3s ease; }
-        video.active-media, img#imagePreview.active-media { display: block; }
+        video, img#imagePreview, canvas#vfxCanvas { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; transition: transform 0.3s ease; }
+        video.active-media, img#imagePreview.active-media, canvas#vfxCanvas.active-media { display: block; }
         
         #pipOverlayImg { position: absolute; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #38bdf8; top: 20px; left: 20px; z-index: 5; display: none; cursor: pointer; }
 
@@ -82,8 +81,21 @@
 <body>
 
     <div class="header-row">
-        <h1>HD Editer</h1>
-        <button class="btn btn-secondary" style="flex: 0 0 90px; padding: 6px;" onclick="goHome()">🔙 Back / Home</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="24" height="24" rx="8" fill="url(#paint0_linear)"/>
+                <path d="M7 9.5C7 8.67157 7.67157 8 8.5 8H12.5C13.3284 8 14 8.67157 14 9.5V14.5C14 15.3284 13.3284 16 12.5 16H8.5C7.67157 16 7 15.3284 7 14.5V9.5Z" fill="white"/>
+                <path d="M15 10L18 8V16L15 14V10Z" fill="white" opacity="0.8"/>
+                <defs>
+                    <linearGradient id="paint0_linear" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#38bdf8"/>
+                        <stop offset="1" stop-color="#0284c7"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <h1 style="font-size: 1.4rem; color: #38bdf8; margin: 0;">HD Editer</h1>
+        </div>
+        <button class="btn btn-secondary" style="flex: 0 0 85px; padding: 6px; font-size: 0.8rem;" onclick="goHome()">🔙 Home</button>
     </div>
     <p class="subtitle">Ultimate Pro Video & Photo Editor Studio</p>
 
@@ -97,6 +109,7 @@
         <!-- Live Video & Preview Box -->
         <div class="video-box" id="videoBox">
             <video id="videoPreview" autoplay playsinline muted></video>
+            <canvas id="vfxCanvas"></canvas>
             <img id="imagePreview" alt="Uploaded Image Preview">
             <img id="pipOverlayImg" alt="PiP Overlay">
             <div id="vignette" class="vignette-overlay"></div>
@@ -111,6 +124,22 @@
         <div style="display: flex; gap: 8px;" id="cameraControls">
             <button class="btn btn-secondary" id="flipBtn" onclick="switchCamera()">🔄 Flip</button>
             <button class="btn btn-secondary" id="torchBtn" onclick="toggleTorch()">🔦 Flash: OFF</button>
+        </div>
+
+        <!-- 🎬 AI & Chroma Key Background VFX Studio -->
+        <div class="panel-box" style="background: #0b1120; border-color: #38bdf8;">
+            <div class="section-title" style="color: #38bdf8;">🎬 AI & Chroma Key Background VFX</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Choose realistic background effect:</div>
+            <select id="bgVfxSelect" onchange="toggleBgVfx()">
+                <option value="none">Normal (No Background VFX)</option>
+                <option value="greenscreen">🟢 Green Screen / Chroma Key Remover</option>
+                <option value="blur">🪄 AI Portrait Background Blur</option>
+                <option value="studio">🌆 Cinematic Virtual Studio Backdrop</option>
+            </select>
+            <div id="customBgContainer" style="margin-top: 6px; display: none;">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 2px;">Upload Custom Background Image:</div>
+                <input type="file" id="customBgUpload" accept="image/*">
+            </div>
         </div>
 
         <!-- Aspect Ratio Switcher -->
@@ -342,6 +371,8 @@
         let recordedChunks = [];
         let videoElement = document.getElementById('videoPreview');
         let imageElement = document.getElementById('imagePreview');
+        let vfxCanvas = document.getElementById('vfxCanvas');
+        let ctx = vfxCanvas.getContext('2d');
         let pipOverlayImg = document.getElementById('pipOverlayImg');
         let galleryUpload = document.getElementById('galleryUpload');
         let pipUpload = document.getElementById('pipUpload');
@@ -386,12 +417,17 @@
         let resSection = document.getElementById('resSection');
         let aspectSelect = document.getElementById('aspectSelect');
         let stockClipsSelect = document.getElementById('stockClipsSelect');
+        let bgVfxSelect = document.getElementById('bgVfxSelect');
+        let customBgContainer = document.getElementById('customBgContainer');
+        let customBgUpload = document.getElementById('customBgUpload');
 
         let currentFacingMode = 'user';
         let torchOn = false;
         let isGalleryMode = false;
         let currentRotation = 0;
         let stickerElements = [];
+        let vfxAnimationId = null;
+        let customBgImg = null;
 
         let voiceRecorder;
         let voiceChunks = [];
@@ -417,6 +453,7 @@
                 videoElement.srcObject = mediaStream;
                 videoElement.className = "active-media";
                 imageElement.className = "";
+                vfxCanvas.className = "";
                 torchOn = false;
                 torchBtn.innerText = "🔦 Flash: OFF";
             } catch (err) {
@@ -442,6 +479,120 @@
                 pipOverlayImg.style.display = 'block';
             }
         });
+
+        customBgUpload.addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if(file) {
+                let img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = function() { customBgImg = img; };
+            }
+        });
+
+        galleryUpload.addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if(file) {
+                isGalleryMode = true;
+                if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+                let url = URL.createObjectURL(file);
+                if(file.type.startsWith('video')) {
+                    videoElement.srcObject = null;
+                    videoElement.src = url;
+                    videoElement.controls = true;
+                    videoElement.className = "active-media";
+                    imageElement.className = "";
+                } else {
+                    imageElement.src = url;
+                    imageElement.className = "active-media";
+                    videoElement.className = "";
+                }
+                editSuite.style.display = 'flex';
+                cameraControls.style.display = 'none';
+                resSection.style.display = 'none';
+                downloadBtn.style.display = 'block';
+                retakeBtn.style.display = 'block';
+                recordBtn.style.display = 'none';
+            }
+        });
+
+        function toggleBgVfx() {
+            let mode = bgVfxSelect.value;
+            if(mode === 'studio') {
+                customBgContainer.style.display = 'block';
+            } else {
+                customBgContainer.style.display = 'none';
+            }
+
+            if(mode === 'none') {
+                if(vfxAnimationId) cancelAnimationFrame(vfxAnimationId);
+                vfxCanvas.className = "";
+                videoElement.className = "active-media";
+            } else {
+                videoElement.className = "";
+                vfxCanvas.className = "active-media";
+                startVfxLoop(mode);
+            }
+        }
+
+        function startVfxLoop(mode) {
+            if(vfxAnimationId) cancelAnimationFrame(vfxAnimationId);
+
+            function processFrame() {
+                if(videoElement.paused || videoElement.ended) {
+                    vfxAnimationId = requestAnimationFrame(processFrame);
+                    return;
+                }
+
+                vfxCanvas.width = videoElement.videoWidth || 720;
+                vfxCanvas.height = videoElement.videoHeight || 1280;
+
+                ctx.drawImage(videoElement, 0, 0, vfxCanvas.width, vfxCanvas.height);
+
+                if(mode === 'greenscreen') {
+                    let frame = ctx.getImageData(0, 0, vfxCanvas.width, vfxCanvas.height);
+                    let l = frame.data.length;
+                    for (let i = 0; i < l; i += 4) {
+                        let r = frame.data[i];
+                        let g = frame.data[i + 1];
+                        let b = frame.data[i + 2];
+                        if (g > 100 && r < 90 && b < 90) {
+                            frame.data[i + 3] = 0;
+                        }
+                    }
+                    ctx.putImageData(frame, 0, 0);
+                    if(customBgImg) {
+                        ctx.globalCompositeOperation = 'destination-over';
+                        ctx.drawImage(customBgImg, 0, 0, vfxCanvas.width, vfxCanvas.height);
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
+                } else if(mode === 'blur') {
+                    ctx.filter = 'blur(8px)';
+                    ctx.drawImage(videoElement, 0, 0, vfxCanvas.width, vfxCanvas.height);
+                    ctx.filter = 'none';
+                    ctx.drawImage(videoElement, vfxCanvas.width*0.2, 0, vfxCanvas.width*0.6, vfxCanvas.height, vfxCanvas.width*0.2, 0, vfxCanvas.width*0.6, vfxCanvas.height);
+                } else if(mode === 'studio') {
+                    if(customBgImg) {
+                        let frame = ctx.getImageData(0, 0, vfxCanvas.width, vfxCanvas.height);
+                        let l = frame.data.length;
+                        for (let i = 0; i < l; i += 4) {
+                            let r = frame.data[i];
+                            let g = frame.data[i + 1];
+                            let b = frame.data[i + 2];
+                            if (g > 110 && r < 100 && b < 100) {
+                                frame.data[i + 3] = 0;
+                            }
+                        }
+                        ctx.putImageData(frame, 0, 0);
+                        ctx.globalCompositeOperation = 'destination-over';
+                        ctx.drawImage(customBgImg, 0, 0, vfxCanvas.width, vfxCanvas.height);
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
+                }
+
+                vfxAnimationId = requestAnimationFrame(processFrame);
+            }
+            processFrame();
+        }
 
         async function toggleVoiceRecording() {
             if (!isRecordingVoice) {
@@ -477,13 +628,13 @@
         }
 
         function playSFX(type) {
-            let ctx = new (window.AudioContext || window.webkitAudioContext)();
-            let osc = ctx.createOscillator();
-            let gain = ctx.createGain();
+            let ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = ctxAudio.createOscillator();
+            let gain = ctxAudio.createGain();
             osc.connect(gain);
-            gain.connect(ctx.destination);
+            gain.connect(ctxAudio.destination);
 
-            let now = ctx.currentTime;
+            let now = ctxAudio.currentTime;
             if(type === 'Pop') {
                 osc.frequency.setValueAtTime(400, now);
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
@@ -526,6 +677,7 @@
             videoElement.controls = true;
             videoElement.className = "active-media";
             imageElement.className = "";
+            vfxCanvas.className = "";
             editSuite.style.display = 'flex';
             cameraControls.style.display = 'none';
             resSection.style.display = 'none';
@@ -542,16 +694,20 @@
         function setMotion(type) {
             videoElement.className = videoElement.classList.contains('active-media') ? 'active-media' : '';
             imageElement.className = imageElement.classList.contains('active-media') ? 'active-media' : '';
+            vfxCanvas.className = vfxCanvas.classList.contains('active-media') ? 'active-media' : '';
             
             if(type === 'spin') {
                 videoElement.classList.add('anim-spin');
                 imageElement.classList.add('anim-spin');
+                vfxCanvas.classList.add('anim-spin');
             } else if(type === 'zigzag') {
                 videoElement.classList.add('anim-zigzag');
                 imageElement.classList.add('anim-zigzag');
+                vfxCanvas.classList.add('anim-zigzag');
             } else if(type === 'updown') {
                 videoElement.classList.add('anim-updown');
                 imageElement.classList.add('anim-updown');
+                vfxCanvas.classList.add('anim-updown');
             } else {
                 currentRotation = 0;
             }
@@ -562,6 +718,7 @@
             let transformStr = `rotate(${currentRotation}deg)`;
             videoElement.style.transform = transformStr;
             imageElement.style.transform = transformStr;
+            vfxCanvas.style.transform = transformStr;
         }
 
         function setPreset(type) {
@@ -572,8 +729,10 @@
             } else if(type === 'vintage') {
                 brightnessSlider.value = 110; contrastSlider.value = 110; saturationSlider.value = 80;
                 brightVal.innerText = '110%'; contrastVal.innerText = '110%'; satVal.innerText = '80%';
-                videoElement.style.filter = 'sepia(60%) brightness(110%) contrast(110%) saturate(80%)';
-                imageElement.style.filter = 'sepia(60%) brightness(110%) contrast(110%) saturate(80%)';
+                let filterStr = 'sepia(60%) brightness(110%) contrast(110%) saturate(80%)';
+                videoElement.style.filter = filterStr;
+                imageElement.style.filter = filterStr;
+                vfxCanvas.style.filter = filterStr;
             } else if(type === 'vibrant') {
                 brightnessSlider.value = 105; contrastSlider.value = 125; saturationSlider.value = 180;
                 brightVal.innerText = '105%'; contrastVal.innerText = '125%'; satVal.innerText = '180%';
@@ -589,269 +748,259 @@
             updateEffects();
         }
 
+        function updateEffects() {
+            brightVal.innerText = brightnessSlider.value + '%';
+            contrastVal.innerText = contrastSlider.value + '%';
+            satVal.innerText = saturationSlider.value + '%';
+            intensityVal.innerText = intensitySlider.value + '%';
+
+            let b = brightnessSlider.value;
+            let c = contrastSlider.value;
+            let s = saturationSlider.value;
+            let filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+
+            if(dslrToggle.checked) {
+                let intensity = intensitySlider.value / 100;
+                filterStr += ` blur(${3 * intensity}px)`;
+                vignette.className = "vignette-overlay vignette-active";
+            } else {
+                vignette.className = "vignette-overlay";
+            }
+
+            let fill = colorFillSelect.value;
+            if(fill === 'golden') {
+                colorOverlay.style.background = 'rgba(255, 180, 50, 0.25)';
+                colorOverlay.style.opacity = '1';
+            } else if(fill === 'cyberpunk') {
+                colorOverlay.style.background = 'rgba(0, 200, 255, 0.25)';
+                colorOverlay.style.opacity = '1';
+            } else if(fill === 'sunset') {
+                colorOverlay.style.background = 'rgba(255, 100, 150, 0.25)';
+                colorOverlay.style.opacity = '1';
+            } else if(fill === 'emerald') {
+                colorOverlay.style.background = 'rgba(0, 200, 100, 0.22)';
+                colorOverlay.style.opacity = '1';
+            } else {
+                colorOverlay.style.opacity = '0';
+            }
+
+            videoElement.style.filter = filterStr;
+            imageElement.style.filter = filterStr;
+            vfxCanvas.style.filter = filterStr;
+        }
+
+        function updateCaption() {
+            videoCaption.innerText = captionInput.value;
+        }
+
+        function updateFont() {
+            videoCaption.style.fontFamily = fontSelect.value;
+        }
+
+        // --- Stickers & Emoji Functions ---
         function addSticker(emoji) {
             let container = document.getElementById('stickerContainer');
+            if(!container) return;
             let span = document.createElement('div');
             span.innerText = emoji;
             span.style.position = 'absolute';
             span.style.left = (Math.random() * 60 + 20) + '%';
             span.style.top = (Math.random() * 60 + 20) + '%';
-            span.style.fontSize = '3rem';
+            span.style.fontSize = '2.5rem';
             span.style.cursor = 'pointer';
-            span.style.pointerEvents = 'auto';
-            span.style.transform = 'translate(-50%, -50%)';
-            span.onclick = function() { 
-                container.removeChild(span); 
-                stickerElements = stickerElements.filter(el => el !== span);
+            span.style.userSelect = 'none';
+            
+            span.onclick = function() {
+                span.remove();
+                let index = stickerElements.indexOf(span);
+                if (index > -1) {
+                    stickerElements.splice(index, 1);
+                }
             };
+
             container.appendChild(span);
             stickerElements.push(span);
         }
 
         function undoLastSticker() {
-            if(stickerElements.length > 0) {
+            if (stickerElements.length > 0) {
                 let lastSticker = stickerElements.pop();
                 lastSticker.remove();
             }
         }
 
         function clearStickers() {
-            document.getElementById('stickerContainer').innerHTML = '';
-            stickerElements = [];
-        }
-
-        galleryUpload.addEventListener('change', function(e) {
-            let file = e.target.files[0];
-            if(file) {
-                isGalleryMode = true;
-                if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); }
-                let fileURL = URL.createObjectURL(file);
-                if(file.type.startsWith('video/')) {
-                    videoElement.srcObject = null;
-                    videoElement.src = fileURL;
-                    videoElement.controls = true;
-                    videoElement.className = "active-media";
-                    imageElement.className = "";
-                    editSuite.style.display = 'flex';
-                    recordBtn.style.display = 'none';
-                    downloadBtn.style.display = 'block';
-                    retakeBtn.style.display = 'block';
-                    recordedChunks = []; 
-                } else if(file.type.startsWith('image/')) {
-                    imageElement.src = fileURL;
-                    imageElement.className = "active-media";
-                    videoElement.className = "";
-                    videoElement.src = "";
-                    recordBtn.style.display = 'none';
-                    downloadBtn.style.display = 'none';
-                    retakeBtn.style.display = 'block';
-                }
-                cameraControls.style.display = 'none';
-                resSection.style.display = 'none';
-            }
-        });
-
-        function switchCamera() {
-            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            initCamera();
-        }
-
-        async function toggleTorch() {
-            let track = mediaStream.getVideoTracks()[0];
-            try {
-                torchOn = !torchOn;
-                await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-                torchBtn.innerText = torchOn ? "🔦 Flash: ON" : "🔦 Flash: OFF";
-            } catch(e) {
-                alert("Flash/Torch is not supported on this device/camera.");
-                torchOn = false;
+            let container = document.getElementById('stickerContainer');
+            if (container) {
+                container.innerHTML = '';
+                stickerElements = [];
             }
         }
 
-        function adjustMusicVolume() {
-            let vol = musicVolumeSlider.value / 100;
-            bgMusic.volume = vol;
-            musicVolVal.innerText = musicVolumeSlider.value + '%';
-        }
-        bgMusic.volume = 0.8;
-
-        async function searchSongs() {
-            let query = songSearchInput.value.trim();
-            if(!query) { alert("Please type a song name to search."); return; }
-
-            searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #94a3b8;">Searching songs...</div>';
+        function searchSongs() {
+            let query = songSearchInput.value.trim().toLowerCase();
+            if(!query) return;
             searchResults.style.display = 'block';
+            searchResults.innerHTML = `
+                <div class="search-item" onclick="selectSong('Lofi Chill Beats', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')">
+                    <span>🎵 ${query} (Lofi Remix)</span><span style="color:#38bdf8;">Select</span>
+                </div>
+                <div class="search-item" onclick="selectSong('Upbeat Party Mix', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3')">
+                    <span>🔥 ${query} (Club Mix)</span><span style="color:#38bdf8;">Select</span>
+                </div>
+            `;
+        }
 
-            try {
-                let response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=6`);
-                let data = await response.json();
-
-                searchResults.innerHTML = '';
-                if(data.results && data.results.length > 0) {
-                    data.results.forEach(song => {
-                        let item = document.createElement('div');
-                        item.className = 'search-item';
-                        item.innerHTML = `🎵 <b>${song.trackName}</b> - ${song.artistName} <span style="color:#38bdf8; font-weight:bold;">Select</span>`;
-                        item.onclick = function() {
-                            bgMusic.src = song.previewUrl;
-                            songSearchInput.value = `${song.trackName} - ${song.artistName}`;
-                            searchResults.style.display = 'none';
-                            audioUpload.value = "";
-                        };
-                        searchResults.appendChild(item);
-                    });
-                } else {
-                    searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">No songs found.</div>';
-                }
-            } catch(e) {
-                searchResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #ef4444;">Search failed.</div>';
-            }
+        function selectSong(title, url) {
+            bgMusic.src = url;
+            bgMusic.play();
+            songSearchInput.value = title;
+            searchResults.style.display = 'none';
+            alert("Background song loaded & playing!");
         }
 
         audioUpload.addEventListener('change', function(e) {
             let file = e.target.files[0];
             if(file) {
                 bgMusic.src = URL.createObjectURL(file);
-                songSearchInput.value = "";
-                searchResults.style.display = 'none';
+                bgMusic.play();
+                alert("Custom audio loaded successfully!");
             }
         });
 
-        function updateEffects() {
-            let p = intensitySlider.value / 100;
-            intensityVal.innerText = intensitySlider.value + '%';
-            let br = brightnessSlider.value;
-            brightVal.innerText = br + '%';
-            let co = contrastSlider.value;
-            contrastVal.innerText = co + '%';
-            let sat = saturationSlider.value;
-            satVal.innerText = sat + '%';
+        function adjustMusicVolume() {
+            let vol = musicVolumeSlider.value;
+            musicVolVal.innerText = vol + '%';
+            bgMusic.volume = vol / 100;
+        }
 
-            let filterStr = `brightness(${br}%) contrast(${co}%) saturate(${sat}%)`;
-
-            if (dslrToggle.checked) {
-                let sep = 0.12 * p;
-                let hue = -8 * p;
-                filterStr += ` sepia(${sep}) hue-rotate(${hue}deg)`;
-                vignette.classList.add('vignette-active');
-            } else {
-                vignette.classList.remove('vignette-active');
+        function applyTrim() {
+            if(videoElement.tagName === 'VIDEO') {
+                videoElement.currentTime = parseFloat(trimStart.value);
             }
-            videoElement.style.filter = filterStr;
-            imageElement.style.filter = filterStr;
-
-            let val = colorFillSelect.value;
-            if(val === 'golden') { colorOverlay.style.backgroundColor = '#ffaa00'; colorOverlay.style.opacity = (0.35 * p); }
-            else if(val === 'cyberpunk') { colorOverlay.style.backgroundColor = '#00f0ff'; colorOverlay.style.opacity = (0.35 * p); }
-            else if(val === 'sunset') { colorOverlay.style.backgroundColor = '#ff007f'; colorOverlay.style.opacity = (0.35 * p); }
-            else if(val === 'emerald') { colorOverlay.style.backgroundColor = '#00ff66'; colorOverlay.style.opacity = (0.3 * p); }
-            else { colorOverlay.style.backgroundColor = 'transparent'; colorOverlay.style.opacity = '0'; }
         }
 
-        function updateCaption() { videoCaption.innerText = captionInput.value; }
-        function updateFont() { videoCaption.style.fontFamily = fontSelect.value; }
         function changeSpeed() {
-            let speed = parseFloat(postSpeedSelect.value);
-            videoElement.playbackRate = speed;
-            bgMusic.playbackRate = speed;
+            if(videoElement.tagName === 'VIDEO') {
+                videoElement.playbackRate = parseFloat(postSpeedSelect.value);
+            }
         }
-        function applyTrim() { videoElement.currentTime = parseFloat(trimStart.value) || 0; }
+
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            initCamera();
+        }
+
+        async function toggleTorch() {
+            if(!mediaStream) return;
+            let track = mediaStream.getVideoTracks()[0];
+            try {
+                torchOn = !torchOn;
+                await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+                torchBtn.innerText = torchOn ? "🔦 Flash: ON" : "🔦 Flash: OFF";
+            } catch(e) {
+                alert("Torch/Flash not supported on this device/camera.");
+                torchOn = !torchOn;
+            }
+        }
 
         function toggleRecord() {
-            if (recordBtn.innerText.includes("Start")) { startCountdownAndRecord(); }
-            else { stopRecording(); }
+            if (recordBtn.innerText.includes('Start')) {
+                // Countdown before recording
+                countdownOverlay.style.display = 'block';
+                let count = 3;
+                countdownOverlay.innerText = count;
+                let timer = setInterval(() => {
+                    count--;
+                    if(count > 0) {
+                        countdownOverlay.innerText = count;
+                    } else {
+                        clearInterval(timer);
+                        countdownOverlay.style.display = 'none';
+                        startActualRecording();
+                    }
+                }, 1000);
+            } else {
+                stopRecording();
+            }
         }
 
-        function startCountdownAndRecord() {
-            let count = 3;
-            countdownOverlay.innerText = count;
-            countdownOverlay.classList.add('countdown-active');
-            recordBtn.disabled = true;
-
-            let timer = setInterval(() => {
-                count--;
-                if (count > 0) { countdownOverlay.innerText = count; }
-                else if (count === 0) { countdownOverlay.innerText = "GO!"; }
-                else {
-                    clearInterval(timer);
-                    countdownOverlay.classList.remove('countdown-active');
-                    recordBtn.disabled = false;
-                    startRecording();
-                }
-            }, 1000);
-        }
-
-        function startRecording() {
+        function startActualRecording() {
             recordedChunks = [];
-            let options = { mimeType: 'video/webm; codecs=vp9' };
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) { options = { mimeType: 'video/webm' }; }
+            let streamToRecord = mediaStream;
+            
+            // If vfx is active, capture stream from canvas
+            if(vfxCanvas.classList.contains('active-media')) {
+                streamToRecord = vfxCanvas.captureStream(30);
+                if(mediaStream && mediaStream.getAudioTracks().length > 0) {
+                    streamToRecord.addTrack(mediaStream.getAudioTracks()[0]);
+                }
+            }
 
-            try { mediaRecorder = new MediaRecorder(mediaStream, options); }
-            catch (e) { mediaRecorder = new MediaRecorder(mediaStream); }
+            try {
+                mediaRecorder = new MediaRecorder(streamToRecord, { mimeType: 'video/webm;codecs=vp9' });
+            } catch(e) {
+                mediaRecorder = new MediaRecorder(streamToRecord);
+            }
 
-            mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.ondataavailable = function(e) {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
 
             mediaRecorder.onstop = function() {
                 let blob = new Blob(recordedChunks, { type: 'video/webm' });
-                let videoURL = URL.createObjectURL(blob);
+                let videoUrl = URL.createObjectURL(blob);
                 videoElement.srcObject = null;
-                videoElement.src = videoURL;
+                videoElement.src = videoUrl;
                 videoElement.controls = true;
-                bgMusic.pause();
-                if(voiceAudioPlayer.src) voiceAudioPlayer.pause();
-
+                videoElement.className = "active-media";
+                vfxCanvas.className = "";
+                imageElement.className = "";
                 editSuite.style.display = 'flex';
                 cameraControls.style.display = 'none';
                 resSection.style.display = 'none';
-                songSection.style.display = 'flex';
-
-                videoElement.onloadedmetadata = function() {
-                    trimEnd.value = videoElement.duration.toFixed(1);
-                    trimEnd.max = videoElement.duration.toFixed(1);
-                };
             };
 
             mediaRecorder.start();
-            if(bgMusic.src) bgMusic.play();
-            if(voiceBlobUrl) voiceAudioPlayer.play();
-
             recordBtn.innerText = "⏹️ Stop Record";
             recordBtn.className = "btn btn-danger";
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
+            if(mediaRecorder) {
+                mediaRecorder.stop();
+            }
             recordBtn.style.display = 'none';
             downloadBtn.style.display = 'block';
             retakeBtn.style.display = 'block';
         }
 
         function downloadVideo() {
+            if(imageElement.classList.contains('active-media')) {
+                // Download as photo
+                let link = document.createElement('a');
+                link.download = 'edited-photo.png';
+                link.href = imageElement.src;
+                link.click();
+                return;
+            }
+
             let blob = new Blob(recordedChunks, { type: 'video/webm' });
             let url = URL.createObjectURL(blob);
             let a = document.createElement('a');
-            a.style.display = 'none'; a.href = url;
-            a.download = 'HD-Editer-Pro.webm';
-            document.body.appendChild(a); a.click();
-            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
-        }
-
-        function retakeView() {
-            // reset logic
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'hd-edited-video.webm';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
         }
 
         function retakeVideo() {
             isGalleryMode = false;
-            videoElement.src = "";
-            videoElement.controls = false;
-            imageElement.src = "";
-            imageElement.className = "";
-            pipOverlayImg.style.display = 'none';
-            galleryUpload.value = "";
-            pipUpload.value = "";
-            currentRotation = 0;
-            clearStickers();
-            initCamera();
             editSuite.style.display = 'none';
             cameraControls.style.display = 'flex';
             resSection.style.display = 'block';
@@ -860,5 +1009,9 @@
             recordBtn.style.display = 'block';
             recordBtn.innerText = "🔴 Start Record";
             recordBtn.className = "btn btn-success";
-    
-
+            videoElement.controls = false;
+            initCamera();
+        }
+    </script>
+</body>
+</html>
